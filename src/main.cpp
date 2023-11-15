@@ -7,16 +7,35 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 uint8_t id;
 uint8_t getFingerprintEnroll();
-
+void finger_setup(int freq);
+uint8_t readnumber(void);
+void serial_setup(int freq);
 
 void setup()
 {
-  Serial.begin(9600);
-  delay(100);
-  Serial.println("\n\nAdafruit Fingerprint sensor enrollment");
+  serial_setup(9600); // 初始化串口监视器
 
-  // set the data rate for the sensor serial port
-  finger.begin(57600);
+  finger_setup(57600); // 初始化指纹解锁模块
+}
+
+void loop() // run over and over again
+{
+  ready_getFingerEnroll();// 调用录入指纹流程函数
+}
+
+// 初始化串口监视器
+void serial_setup(int freq)
+{
+  Serial.begin(freq);
+  delay(100);
+  Serial.println("\n\nAdafruit Fingerprint sensor");
+}
+
+// 指纹检测模块串口通信初始化函数
+void finger_setup(int freq)
+{
+  // 设置指纹解锁库的串口通信频率
+  finger.begin(freq);
 
   if (finger.verifyPassword())
   {
@@ -31,6 +50,7 @@ void setup()
     }
   }
 
+  // 像串口监视器回报指纹识别模块信息
   Serial.println(F("Reading sensor parameters"));
   finger.getParameters();
   Serial.print(F("Status: 0x"));
@@ -62,22 +82,7 @@ uint8_t readnumber(void)
   return num;
 }
 
-void loop() // run over and over again
-{
-  Serial.println("Ready to enroll a fingerprint!");
-  Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
-  id = readnumber();
-  if (id == 0)
-  { // ID #0 not allowed, try again!
-    return;
-  }
-  Serial.print("Enrolling ID #");
-  Serial.println(id);
-
-  while (!getFingerprintEnroll())
-    ;
-}
-
+// 录入指纹
 uint8_t getFingerprintEnroll()
 {
 
@@ -245,4 +250,21 @@ uint8_t getFingerprintEnroll()
   }
 
   return true;
+}
+
+// 录入指纹流程
+void ready_getFingerEnroll()
+{
+  Serial.println("Ready to enroll a fingerprint!");
+  Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
+  id = readnumber();
+  if (id == 0)
+  { // ID #0 not allowed, try again!
+    return;
+  }
+  Serial.print("Enrolling ID #");
+  Serial.println(id);
+
+  while (!getFingerprintEnroll())
+    ;
 }

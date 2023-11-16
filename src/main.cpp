@@ -5,11 +5,12 @@
 
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
-uint8_t id;
-uint8_t getFingerprintEnroll();
+uint8_t id; // 录入指纹占用库的id
 void finger_setup(int freq);
-uint8_t readnumber(void);
 void serial_setup(int freq);
+void testfingerprint();
+uint8_t readnumber(void);
+
 
 void setup()
 {
@@ -20,7 +21,12 @@ void setup()
 
 void loop() // run over and over again
 {
-  ready_getFingerEnroll();// 调用录入指纹流程函数
+  Serial.println("Please type in the 1 to test finger");
+  id = readnumber();
+  if (id == 1)
+  {
+    testfingerprint();
+  }
 }
 
 // 初始化串口监视器
@@ -267,4 +273,81 @@ void ready_getFingerEnroll()
 
   while (!getFingerprintEnroll())
     ;
+}
+
+// 检测指纹
+void testfingerprint()
+{
+  // 打印准备检测提示字符
+  Serial.println("Ready to test a fingerprint!");
+  Serial.println("Waiting for valid finger to test");
+
+  // 录入指纹图像
+  int p = -1;
+  while (p != FINGERPRINT_OK)
+  {
+    p = finger.getImage();
+    switch (p)
+    {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.println(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  p = -1;
+  p = finger.image2Tz(1);
+  switch (p)
+  {
+  case FINGERPRINT_OK:
+    Serial.println("Image converted");
+    p = 999;
+    break;
+  case FINGERPRINT_IMAGEMESS:
+    Serial.println("Image too messy");
+    break;
+  case FINGERPRINT_PACKETRECIEVEERR:
+    Serial.println("Communication error");
+    break;
+  case FINGERPRINT_FEATUREFAIL:
+    Serial.println("Could not find fingerprint features");
+    break;
+  case FINGERPRINT_INVALIDIMAGE:
+    Serial.println("Could not find fingerprint features");
+    break;
+  default:
+    Serial.println("Unknown error");
+    break;
+  }
+
+  if (p == 999)
+  {
+    // 在指纹库中迅速搜索指纹
+    Serial.println("searching......");
+    p = finger.fingerFastSearch();
+    switch (p)
+    {
+    case FINGERPRINT_OK:
+      Serial.println("Successful! find the match point");
+      break;
+    case FINGERPRINT_NOTFOUND:
+      Serial.println("no match find, try again");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    }
+  }
 }

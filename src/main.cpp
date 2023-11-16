@@ -6,26 +6,39 @@
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 uint8_t id; // 录入指纹占用库的id
+int led_pin = 2;
 void finger_setup(int freq);
 void serial_setup(int freq);
-void testfingerprint();
+int testfingerprint();
+void servo_rotate();
 uint8_t readnumber(void);
-
 
 void setup()
 {
+  pinMode(led_pin, OUTPUT);
+  digitalWrite(led_pin, LOW);
+
+
   serial_setup(9600); // 初始化串口监视器
 
   finger_setup(57600); // 初始化指纹解锁模块
+
+
+  //建立LEDC通道
+  ledcSetup(0, 50, 8);
+  //关联GPIO口与LEDC通道
+  ledcAttachPin(23, 0);
 }
 
 void loop() // run over and over again
 {
+  int check_value = -1;
   Serial.println("Please type in the 1 to test finger");
-  id = readnumber();
-  if (id == 1)
+  check_value = testfingerprint();
+  if (check_value == 0)
   {
-    testfingerprint();
+    // 执行舵机旋转程序
+    servo_rotate();
   }
 }
 
@@ -276,13 +289,14 @@ void ready_getFingerEnroll()
 }
 
 // 检测指纹
-void testfingerprint()
+int testfingerprint()
 {
   // 打印准备检测提示字符
   Serial.println("Ready to test a fingerprint!");
   Serial.println("Waiting for valid finger to test");
 
   // 录入指纹图像
+  int retu = -1;
   int p = -1;
   while (p != FINGERPRINT_OK)
   {
@@ -317,18 +331,23 @@ void testfingerprint()
     break;
   case FINGERPRINT_IMAGEMESS:
     Serial.println("Image too messy");
+    return retu;
     break;
   case FINGERPRINT_PACKETRECIEVEERR:
     Serial.println("Communication error");
+    return retu;
     break;
   case FINGERPRINT_FEATUREFAIL:
     Serial.println("Could not find fingerprint features");
+    return retu;
     break;
   case FINGERPRINT_INVALIDIMAGE:
     Serial.println("Could not find fingerprint features");
+    return retu;
     break;
   default:
     Serial.println("Unknown error");
+    return retu;
     break;
   }
 
@@ -341,13 +360,30 @@ void testfingerprint()
     {
     case FINGERPRINT_OK:
       Serial.println("Successful! find the match point");
+      retu = 0;
+      return retu;
       break;
     case FINGERPRINT_NOTFOUND:
       Serial.println("no match find, try again");
+      return retu;
       break;
     case FINGERPRINT_PACKETRECIEVEERR:
       Serial.println("Communication error");
+      return retu;
       break;
     }
   }
+  return retu;
+}
+
+// 舵机旋转程序
+void servo_rotate()
+{
+  int min_degree = 0.5 / 20 * pow(2, 8);
+  int max_degree = 2.5 / 20 * pow(2, 8);
+  ledcWrite(0, min_degree);
+  
+  ledcWrite(0, max_degree);
+  delay(3000);
+  ledcWrite(0, min_degree);
 }
